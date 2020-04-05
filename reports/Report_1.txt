@@ -1,0 +1,20 @@
+Andrew Mathies awmathie 8/25/17
+
+What are Orphan and Zombie processes?
+
+An orphan process is a child process whose parent isn't waiting for them 
+anymore. The parent process of the orphan already finished executing and didn't
+wait fot he child process.
+
+Zombie processes are child processes where exit() was executed, but the parent
+wasn't waiting for the child process. Most of the resources used for the zombie
+process are recycled, but enough is left that when the parent process calls
+wait the zombie process can die.
+
+
+What are the changes that occur when the child process calls the exec system 
+call to execute a new program?
+
+The child process executes the new program and then returns back to the
+place it left off at in the original program. The parent doesn't know that
+anything happened, it just knows the child process is running.

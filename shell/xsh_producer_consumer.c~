@@ -1,0 +1,62 @@
+
+#include <xinu.h>
+#include <stdio.h>
+
+void myProducer();
+void myConsumer();
+
+sid32 mutex, items, spaces;
+int max_delay, count = 0, bytesToSend;
+pid32 producerPID, consumerPID;
+
+shellcmd xsh_producer_consumer(int nargs, char *args[]) {
+  if (nargs != 4) {
+    printf("Incorrect input, should be /n buffer size in bytes /n bytes to send and /n max delay.");
+  }
+
+  /* when consumer removes an item it hsould signal spaces, when a producer arrives it
+     should decrement spaces, at which point it might block until next consumer signals */
+  mutex = semcreate(1);
+  items = semcreate(0);
+  spaces = semcreate((int) args[1]);
+
+  max_delay = (int) args[3];
+  bytesToSend = (int) args[2];
+
+  producerPID = resume(create(myProducer, (int) args[1], 20, "producer", 0));
+  consumerPID = resume(create(myConsumer, (int) args[1], 20, "consumer", 0));
+}
+
+void myProducer() {
+  // make thing
+  rand_delay(max_delay);
+  printf("Producer: 0x%x\n", count);
+
+  wait(spaces);
+  wait(mutex);
+  count++;
+  if (count == 255) {
+    count = 0;
+    bytesToSend -= 256;
+  }
+  signal(mutex);
+  signal(items);
+
+  if (bytesToSend == count)
+    kill(producerPID);
+}
+
+void myConsumer() {
+  wait(items);
+  wait(mutex);
+  int value = count;
+  signal(mutex);
+  signal(spaces);
+
+  // process thing
+  rand_delay(max_delay);
+  printf("Consumer: 0x%x\n", value);
+
+  if (bytesToSend == value)
+    kill(consumerPID);
+}
